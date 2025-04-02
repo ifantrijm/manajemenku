@@ -1,0 +1,64 @@
+function doPost(e) {
+  var sheet = SpreadsheetApp.openById("1MqhRjbGo53Bk4EGWO3R3sHEjEuMjvM2-20va8e3AhO8").getSheetByName("Pengeluaran");
+  var currentDate = new Date();
+  var formattedDate = Utilities.formatDate(currentDate, Session.getScriptTimeZone(), "dd-MM-yyyy HH:mm:ss");
+
+  var kategori = e.parameter.kategori;
+  var jumlah = Number(e.parameter.jumlah);
+  var catatan = e.parameter.catatan || "-";
+
+  // Menambahkan data baru ke Google Sheets
+  sheet.appendRow([formattedDate, kategori, jumlah, catatan]);
+
+  return ContentService.createTextOutput("Data berhasil disimpan!")
+         .setMimeType(ContentService.MimeType.TEXT);
+}
+
+function doGet(e) {
+  var sheet = SpreadsheetApp.openById("1MqhRjbGo53Bk4EGWO3R3sHEjEuMjvM2-20va8e3AhO8").getSheetByName("Pengeluaran");
+
+  if (e.parameter.action === "delete") {
+    return deleteRow(sheet, e.parameter.index);
+  } else if (e.parameter.action === "edit") {
+    return editRow(sheet, e.parameter);
+  }
+
+  var data = sheet.getDataRange().getValues();
+  var totalPengeluaran = 0;
+  var records = [];
+
+  for (var i = 1; i < data.length; i++) {
+    totalPengeluaran += Number(data[i][2]) || 0;
+    records.push([data[i][0], data[i][1], data[i][2], data[i][3]]);
+  }
+
+  var sisaUang = 500000 - totalPengeluaran;
+  var output = { totalPengeluaran: totalPengeluaran, sisaUang: sisaUang, data: records };
+
+  return ContentService.createTextOutput(JSON.stringify(output))
+         .setMimeType(ContentService.MimeType.JSON);
+}
+
+// Fungsi untuk menghapus baris di Google Sheets
+function deleteRow(sheet, index) {
+  index = parseInt(index) + 2; // Menyesuaikan indeks karena header ada di baris pertama
+  sheet.deleteRow(index);
+  return ContentService.createTextOutput("Data berhasil dihapus")
+         .setMimeType(ContentService.MimeType.TEXT);
+}
+
+// Fungsi untuk mengedit baris di Google Sheets
+function editRow(sheet, params) {
+  var index = parseInt(params.index) + 2;
+  var currentDate = new Date();
+  var formattedDate = Utilities.formatDate(currentDate, Session.getScriptTimeZone(), "dd-MM-yyyy HH:mm:ss");
+
+  sheet.getRange(index, 1).setValue(formattedDate);
+  sheet.getRange(index, 2).setValue(params.kategori);
+  sheet.getRange(index, 3).setValue(Number(params.jumlah));
+  sheet.getRange(index, 4).setValue(params.catatan);
+
+  return ContentService.createTextOutput("Data berhasil diperbarui")
+         .setMimeType(ContentService.MimeType.TEXT);
+}
+\
