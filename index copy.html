@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manajemen Keuangan</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <script src="	https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</head>
+<body>
+    <div class="container p-3 alert alert-info mt-5">
+        <h2 class="text-center">Catat Pengeluaran</h2>
+        <form id="pengeluaranForm">
+            <div class="row">
+                <div class="col-md-4 g-2">
+                    <select class="form-control" name="kategori" id="" placeholder="" required>
+                        <option value=""> Kategori </option>
+                        <option value="Kuliah"> Kuliah </option>
+                        <option value="Makanan"> Makanan</option>
+                        <option value="Tranportasi"> Tranportasi </option>
+                        <option value="Dll"> Dll </option>
+                    </select>
+                </div>
+                <div class="col-md-4 g-2">
+                    <input class="form-control" type="number" name="jumlah" placeholder="Jumlah (Rp)" required>
+                </div>
+                <div class="col-md-4 g-2">
+                    <input class="form-control" type="text" name="catatan" placeholder="Catatan">
+                </div>
+                <div class="col-md-12 g-2">
+                    <button class="btn btn-info w-100" type="submit">Simpan</button>
+                    <!-- <p class="btn btn-sucess" id="status"></p> -->
+                </div>
+            </div>
+        </form>
+
+
+        <div class="row mt-3">
+            <div class="col-12 text-center mb-2"><h2>Data Pengeluaran</h2></div>
+            <div class="col-md-6 text-center">
+                <p><strong class="text-danger">Total Pengeluaran:</strong> <span id="totalPengeluaran">0</span></p>
+            </div>
+            <div class="col-md-6 text-center">
+                <p><strong class="text-warning">Sisa Uang:</strong> <span id="sisaUang">0</span></p>
+            </div>
+        </div>
+        
+        
+        
+        <table class="table  ">
+            <thead>
+                <tr class="">
+                    <th>Tanggal</th>
+                    <th>Kategori</th>
+                    <th>Jumlah</th>
+                    <th>Catatan</th>
+                    <th>Aksi</th>
+                </tr>
+            </thead>
+            <tbody id="pengeluaranList"></tbody>
+        </table>
+    </div>
+
+
+    <script>
+        const scriptUrl = "https://script.google.com/macros/s/AKfycbwbIURmBJ9UktYKycrfz2MQW6oM2n35eID0RJAITZliGZglciUMq8vGku65qNKryAcJ/exec";
+        
+        document.getElementById("pengeluaranForm").addEventListener("submit", function(e) {
+    e.preventDefault();
+
+    var form = this;
+    var submitButton = form.querySelector("button[type='submit']");
+    
+    // Efek loading pada tombol submit
+    submitButton.innerHTML = "Menyimpan...";
+    submitButton.disabled = true;
+
+    var formData = new FormData(form);
+    var params = new URLSearchParams(formData).toString();
+
+    fetch(scriptUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: params
+    })
+    .then(response => response.text())
+    .then(data => {
+        // Reset form setelah data berhasil disimpan
+        form.reset();
+
+        // Menampilkan pesan sukses pada tombol submit
+        submitButton.innerHTML = "Data berhasil disimpan!";
+        submitButton.classList.remove("btn-warning");
+        submitButton.classList.add("btn-success");
+
+        // Memuat ulang data pengeluaran
+        loadPengeluaran();
+        
+        // Mengembalikan teks tombol ke status normal setelah 3 detik
+        setTimeout(() => {
+            submitButton.innerHTML = "Simpan";
+            submitButton.classList.remove("btn-success");
+            submitButton.classList.add("btn-primary");
+            submitButton.disabled = false;
+        }, 3000);
+    })
+    .catch(error => {
+        // Menampilkan pesan gagal pada tombol submit
+        submitButton.innerHTML = "Gagal menyimpan data!";
+        submitButton.classList.remove("btn-warning");
+        submitButton.classList.add("btn-danger");
+
+        console.error("Error:", error);
+
+        // Mengembalikan tombol setelah beberapa detik
+        setTimeout(() => {
+            submitButton.innerHTML = "Simpan";
+            submitButton.classList.remove("btn-danger");
+            submitButton.classList.add("btn-primary");
+            submitButton.disabled = false;
+        }, 3000);
+    });
+});
+
+
+function formatRupiah(angka) {
+    return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR" }).format(angka);
+}
+        
+        function formatRupiah(angka) {
+            return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR" }).format(angka);
+        }
+        
+function loadPengeluaran() {
+    fetch(scriptUrl)
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById("totalPengeluaran").innerText = formatRupiah(data.totalPengeluaran);
+            document.getElementById("sisaUang").innerText = formatRupiah(data.sisaUang);
+
+            let pengeluaranList = document.getElementById("pengeluaranList");
+            pengeluaranList.innerHTML = "";
+
+            data.data.forEach((row, index) => {
+                let tr = document.createElement("tr");
+                tr.innerHTML = `
+                    <td>${row[0]}</td>
+                    <td>${row[1]}</td>
+                    <td>${formatRupiah(row[2])}</td>
+                    <td>${row[3]}</td>
+                    <td>
+                        <button class="btn btn-warning btn-sm" onclick="editRow(${index})">Edit</button>
+                        <button class="btn btn-danger btn-sm" onclick="deleteRow(${index})">Hapus</button>
+                    </td>
+                `;
+                pengeluaranList.appendChild(tr);
+            });
+        })
+        .catch(error => console.error("Error:", error));
+}
+
+// Fungsi hapus data
+function deleteRow(index) {
+    if (confirm("Apakah Anda yakin ingin menghapus data ini?")) {
+        fetch(scriptUrl + "?action=delete&index=" + index, { method: "GET" })
+            .then(response => response.text())
+            .then(data => {
+                alert(data);
+                loadPengeluaran();
+            })
+            .catch(error => console.error("Error:", error));
+    }
+}
+
+// Fungsi edit data
+function editRow(index) {
+    let kategori = prompt("Masukkan kategori baru:");
+    let jumlah = prompt("Masukkan jumlah baru:");
+    let catatan = prompt("Masukkan catatan baru:");
+
+    if (kategori && jumlah) {
+        let params = new URLSearchParams({
+            action: "edit",
+            index: index,
+            kategori: kategori,
+            jumlah: jumlah,
+            catatan: catatan || ""
+        });
+
+        fetch(scriptUrl + "?" + params.toString(), { method: "GET" })
+            .then(response => response.text())
+            .then(data => {
+                alert(data);
+                loadPengeluaran();
+            })
+            .catch(error => console.error("Error:", error));
+    }
+}
+
+        
+        function deletePengeluaran(row) {
+            if (confirm("Apakah Anda yakin ingin menghapus data ini?")) {
+                fetch(`${scriptUrl}?row=${row}`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                    body: new URLSearchParams({ row: row }).toString()
+                })
+                .then(response => response.text())
+                .then(data => {
+                    alert(data);
+                    loadPengeluaran();
+                })
+                .catch(error => console.error("Error:", error));
+            }
+        }
+        
+        function editPengeluaran(row, kategori, jumlah, catatan) {
+            let newKategori = prompt("Edit Kategori:", kategori);
+            let newJumlah = prompt("Edit Jumlah:", jumlah);
+            let newCatatan = prompt("Edit Catatan:", catatan);
+        
+            if (newKategori !== null && newJumlah !== null) {
+                fetch(`${scriptUrl}?row=${row}`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                    body: new URLSearchParams({
+                        row: row,
+                        kategori: newKategori,
+                        jumlah: newJumlah,
+                        catatan: newCatatan
+                    }).toString()
+                })
+                .then(response => response.text())
+                .then(data => {
+                    alert(data);
+                    loadPengeluaran();
+                })
+                .catch(error => console.error("Error:", error));
+            }
+        }
+        
+        loadPengeluaran();
+        </script>
+</body>
+</html>
