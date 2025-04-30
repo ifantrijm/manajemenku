@@ -61,4 +61,3 @@ function editRow(sheet, params) {
   return ContentService.createTextOutput("Data berhasil diperbarui")
          .setMimeType(ContentService.MimeType.TEXT);
 }
-\
